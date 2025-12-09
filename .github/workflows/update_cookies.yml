@@ -1,4 +1,4 @@
-# .github/workflows/update_cookies.yml
+#.github/workflows/update_cookies.yml
 name: Hourly ToffeeLive M3U Updater
 
 on:
