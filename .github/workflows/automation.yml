@@ -1,0 +1,97 @@
+# .github/workflows/automation.yml
+name: Hourly ToffeeLive Automation
+
+on:
+  # Schedule to run at 5 minutes past every hour
+  schedule:
+    - cron: '5 * * * *'
+  # Allows manual triggering
+  workflow_dispatch:
+
+jobs:
+  refresh_and_update:
+    runs-on: ubuntu-latest
+    
+    # Secrets from your GitHub repository
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WORKER_NAME: hh # Must match the 'name' in wrangler.toml
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+        # Need history for commit step
+        with:
+          fetch-depth: 0 
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install requests
+          # Install Cloudflare Worker CLI (wrangler)
+          npm install -g wrangler 
+
+      # --- STEP 1: Get New Cookie and Update Worker Secret ---
+      - name: 🍪 Run Python script to get new Cookie
+        id: get_cookie
+        run: |
+          echo "Fetching fresh Edge-Cache-Cookie..."
+          # The Python script to hit the main site and extract the cookie
+          NEW_COOKIE=$(python3 - <<EOF
+import requests
+import re
+AUTH_URL = "https://toffeelive.com/"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Referer": AUTH_URL,
+    "Origin": "https://toffeelive.com",
+    "Accept": "*/*",
+}
+try:
+    response = requests.head(AUTH_URL, headers=HEADERS, allow_redirects=True, timeout=10)
+    cookie_header = response.headers.get("Set-Cookie")
+    if cookie_header:
+        # Regex to find the critical Edge-Cache-Cookie part
+        match = re.search(r'(Edge-Cache-Cookie=[^;]+)', cookie_header)
+        if match:
+            print(match.group(0))
+            exit(0)
+    print("COOKIE_FETCH_FAILED")
+    exit(1)
+except requests.exceptions.RequestException as e:
+    print(f"COOKIE_FETCH_FAILED: {e}")
+    exit(1)
+EOF
+          )
+          
+          if [ "$NEW_COOKIE" == "COOKIE_FETCH_FAILED" ] || [ -z "$NEW_COOKIE" ]; then
+            echo "::warning::Failed to fetch new cookie. Skipping update, hoping current cookie is still valid."
+            # Set a placeholder output to prevent error in next step
+            echo "NEW_COOKIE=" >> $GITHUB_OUTPUT
+            exit 0 # Exit successfully if fetch fails, to allow channel list generation
+          fi
+          
+          echo "New Cookie fetched: $NEW_COOKIE"
+          echo "NEW_COOKIE=$NEW_COOKIE" >> $GITHUB_OUTPUT
+
+      - name: 🔄 Update Worker Environment Variable (AUTH_COOKIE)
+        if: success() && steps.get_cookie.outputs.NEW_COOKIE != ''
+        run: |
+          echo "Updating Worker $WORKER_NAME with fresh cookie..."
+          wrangler secret put AUTH_COOKIE --name $WORKER_NAME --secret "${{ steps.get_cookie.outputs.NEW_COOKIE }}"
+
+      # --- STEP 2: Generate M3U Playlist and Commit to GitHub ---
+      - name: 📝 Run script to generate M3U playlist
+        run: python generate_m3u.py
+        
+      - name: 📤 Commit updated playlist to GitHub
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          # Only commit the new playlist file
+          file_pattern: playlist.m3u
+          commit_message: "🤖 AUTOMATION: Update M3U playlist with fresh worker links"
