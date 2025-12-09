@@ -4,7 +4,7 @@ name: Hourly ToffeeLive M3U Updater
 on:
   # Schedule to run every hour at 30 minutes past the hour (Adjust if needed)
   schedule:
-    - cron: '30 * * * *' 
+    - cron: '1 * * * *' 
   # Allows manual triggering for testing
   workflow_dispatch:
 
