@@ -1,0 +1,42 @@
+# .github/workflows/update_cookies.yml
+name: Hourly ToffeeLive Cookie Refresher
+
+on:
+  # Schedule to run every hour at 30 minutes past the hour
+  schedule:
+    - cron: '30 * * * *' 
+  # Allows manual triggering from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  refresh_and_commit:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Required to allow the workflow to commit changes back
+          fetch-depth: 0 
+          token: ${{ secrets.GITHUB_TOKEN }} # Use default GitHub token for commit
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 📦 Install dependencies (requests)
+        # The Python script needs the 'requests' library
+        run: pip install requests
+
+      - name: 🔄 Run Python script to update cookies in JSON file
+        # This script (refresh_cookie.py) handles fetching the cookie and updating the local JSON file.
+        run: python refresh_cookie.py
+        
+      - name: 📤 Commit updated JSON file to GitHub
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          # Only commit the file if it changed
+          file_pattern: channels_with_cookies.json
+          commit_message: "🤖 AUTOMATION: Refreshed Edge-Cache-Cookies"
+          commit_author: GitHub Actions <actions@github.com>
