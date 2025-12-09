@@ -1,11 +1,9 @@
-#.github/workflows/update_cookies.yml
+# .github/workflows/update_cookies.yml
 name: Hourly ToffeeLive M3U Updater
 
 on:
-  # Schedule to run every hour at 30 minutes past the hour (Adjust if needed)
   schedule:
-    - cron: '*/1 * * * *' 
-  # Allows manual triggering for testing
+    - cron: '*1 * * * *' 
   workflow_dispatch:
 
 jobs:
@@ -16,7 +14,6 @@ jobs:
       - name: ⬇️ Checkout repository
         uses: actions/checkout@v4
         with:
-          # Required to allow the workflow to commit changes back
           fetch-depth: 0 
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -25,19 +22,22 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: 📦 Install dependencies (requests)
-        # The Python script needs the 'requests' library
-        run: pip install requests
+      - name: 📦 Install Python dependencies (Playwright)
+        # Playwright and its browser drivers are needed for simulation
+        run: |
+          pip install playwright
+          playwright install chromium # Install the necessary browser driver
 
       - name: 🔄 Run Automation Script and Generate Playlist
-        # Executes automation.py, which fetches the cookie and writes playlist.m3u
+        # PROXY_URL is passed as an environment variable from GitHub Secrets
         run: python automation.py
+        env:
+          # You must set up a secret named PROXY_URL with your proxy address
+          PROXY_URL: ${{ secrets.PROXY_URL }} 
         
       - name: 📤 Commit updated M3U playlist to GitHub
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          # Only commit the new playlist file
           file_pattern: playlist.m3u
           commit_message: "🤖 AUTOMATION: Refreshed M3U playlist with new cookies"
           commit_author: GitHub Actions <actions@github.com>
-
