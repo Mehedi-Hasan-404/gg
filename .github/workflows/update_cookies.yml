@@ -1,11 +1,11 @@
 # .github/workflows/update_cookies.yml
-name: Hourly ToffeeLive Cookie Refresher
+name: Hourly ToffeeLive M3U Updater
 
 on:
-  # Schedule to run every hour at 30 minutes past the hour
+  # Schedule to run every hour at 30 minutes past the hour (Adjust if needed)
   schedule:
     - cron: '30 * * * *' 
-  # Allows manual triggering from the GitHub Actions tab
+  # Allows manual triggering for testing
   workflow_dispatch:
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
         with:
           # Required to allow the workflow to commit changes back
           fetch-depth: 0 
-          token: ${{ secrets.GITHUB_TOKEN }} # Use default GitHub token for commit
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
@@ -29,14 +29,15 @@ jobs:
         # The Python script needs the 'requests' library
         run: pip install requests
 
-      - name: 🔄 Run Python script to update cookies in JSON file
-        # This script (refresh_cookie.py) handles fetching the cookie and updating the local JSON file.
-        run: python refresh_cookie.py
+      - name: 🔄 Run Automation Script and Generate Playlist
+        # Executes automation.py, which fetches the cookie and writes playlist.m3u
+        run: python automation.py
         
-      - name: 📤 Commit updated JSON file to GitHub
+      - name: 📤 Commit updated M3U playlist to GitHub
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          # Only commit the file if it changed
-          file_pattern: channels_with_cookies.json
-          commit_message: "🤖 AUTOMATION: Refreshed Edge-Cache-Cookies"
+          # Only commit the new playlist file
+          file_pattern: playlist.m3u
+          commit_message: "🤖 AUTOMATION: Refreshed M3U playlist with new cookies"
           commit_author: GitHub Actions <actions@github.com>
+
