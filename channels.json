@@ -163,13 +163,13 @@
   },
   {
     "name": "BAN vs IRE",
-    "link": "https://mprod-cdn.toffeelive.com/live/match-asiacup/master_1300.m3u8",
+    "link": "https://mprod-cdn.toffeelive.com/live/match-asiacup/index.m3u8",
     "logo": "https://assets-prod.services.toffeelive.com/w_640,q_75,f_webp/ty_tbJoBNnOkwJLWsRZG/posters/5e49e175-0e7c-4af4-be13-6711e59d448d.png",
     "cookie": "Edge-Cache-Cookie=PLACEHOLDER_FOR_AUTOMATION"
   },
   {
     "name": "IND vs SA",
-    "link": "https://mprod-cdn.toffeelive.com/live/match-asiacup-2/master_1300.m3u8",
+    "link": "https://mprod-cdn.toffeelive.com/live/match-asiacup-2/index.m3u8",
     "logo": "https://assets-prod.services.toffeelive.com/w_640,q_75,f_webp/TSK2e5oBEef-9-uVH5vw/posters/5cc6444f-88c9-4a08-a934-39588cec6040.png",
     "cookie": "Edge-Cache-Cookie=PLACEHOLDER_FOR_AUTOMATION"
   },
