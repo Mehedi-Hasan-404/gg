@@ -1,43 +1,45 @@
-# automation.py
+# automation.py (FIXED COOKIE FETCH LOGIC)
 import requests
 import re
 import json
 from datetime import datetime
 
 # --- Configuration ---
-AUTH_URL = "https://toffeelive.com/"
+# TRYING THE STREAM ORIGIN DOMAIN, as it might be required for the cookie to be set
+AUTH_URL = "https://mprod-cdn.toffeelive.com/live/match-asiacup/master_1300.m3u8" 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Referer": AUTH_URL,
+    # The referer MUST be the official website
+    "Referer": "https://toffeelive.com/", 
     "Origin": "https://toffeelive.com",
     "Accept": "*/*",
 }
-# Input file (contains links and placeholder cookie)
 CHANNEL_INPUT_FILE = "channels_with_cookies.json" 
-# Output file (the playlist you requested)
 M3U_OUTPUT_FILE = "playlist.m3u"
 # ---------------------
 
 def get_fresh_cookie():
     """Fetches a new Edge-Cache-Cookie."""
-    print("Attempting to fetch a fresh cookie...")
+    print(f"Attempting to fetch a fresh cookie from: {AUTH_URL}...")
     try:
-        response = requests.head(AUTH_URL, headers=HEADERS, allow_redirects=True, timeout=10)
+        # Use GET request for stream link, as HEAD might not trigger the necessary process
+        response = requests.get(AUTH_URL, headers=HEADERS, allow_redirects=True, timeout=10)
+
+        # 1. Check Set-Cookie header (most common method)
         cookie_header = response.headers.get("Set-Cookie")
+        if cookie_header:
+            match = re.search(r'(Edge-Cache-Cookie=[^;]+)', cookie_header)
+            if match:
+                print("✅ Success! New cookie fetched from Set-Cookie header.")
+                return match.group(0)
 
-        if not cookie_header:
-            print(f"ERROR: No 'Set-Cookie' header received (Status: {response.status_code}).")
-            return None
+        # 2. Check the response body (if the server returns a temporary page with an embedded cookie)
+        # This is a fallback and usually not necessary, but good to check.
+        if "Edge-Cache-Cookie" in response.text:
+            print("⚠️ Warning: Cookie found in response body. This method is unreliable.")
 
-        match = re.search(r'(Edge-Cache-Cookie=[^;]+)', cookie_header)
-        
-        if match:
-            new_cookie = match.group(0)
-            print("✅ Success! New cookie fetched.")
-            return new_cookie
-        else:
-            print("❌ Error: 'Edge-Cache-Cookie' not found in Set-Cookie header.")
-            return None
+        print(f"❌ Error: 'Edge-Cache-Cookie' not found in Set-Cookie header after checking {AUTH_URL}.")
+        return None
 
     except requests.exceptions.RequestException as e:
         print(f"A network error occurred during cookie fetch: {e}")
@@ -58,7 +60,6 @@ def generate_m3u(new_cookie):
     m3u_content = "#EXTM3U\n"
     
     for channel in channels:
-        # 1. Prepare M3U tags
         name = channel.get("name", "Unknown Channel")
         link = channel.get("link", "")
         logo = channel.get("logo", "")
@@ -66,11 +67,8 @@ def generate_m3u(new_cookie):
         if not link:
             continue
             
-        # 2. Add EXTINF line with logo and name
         m3u_content += f"#EXTINF:-1 tvg-name=\"{name}\" tvg-logo=\"{logo}\" group-title=\"TOFFEE\",{name}\n"
-        
-        # 3. Add stream URL with embedded cookie header
-        # The player must support this #EXT-HTTP-HEADER structure
+        # CRITICAL: Embed the cookie as a header for the player to use
         m3u_content += f"#EXT-HTTP-HEADER:Cookie: {new_cookie}\n"
         m3u_content += f"{link}\n"
         
@@ -89,4 +87,15 @@ if __name__ == "__main__":
     if cookie:
         generate_m3u(cookie)
     else:
-        print("Skipping M3U generation due to cookie retrieval failure.")
+        # If cookie retrieval fails, we still try to generate the playlist
+        # using the OLD cookie value from the JSON file, as a last resort.
+        print("Attempting M3U generation with old cookie as fallback...")
+        try:
+             with open(CHANNEL_INPUT_FILE, "r") as f:
+                 channels = json.load(f)
+             if channels and "cookie" in channels[0]:
+                 fallback_cookie = channels[0]["cookie"]
+                 generate_m3u(fallback_cookie)
+        except Exception:
+             print("Fallback failed. Aborting M3U generation.")
+
