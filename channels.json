@@ -1,0 +1,29 @@
+// channels.json
+[
+  {
+    "name": "TOFFEE Sports VIP",
+    "path": "/cdn/live/sports_highlights/playlist.m3u8",
+    "logo": "https://images.toffeelive.com/images/program/19779/logo/240x240/mobile_logo_975410001725875598.png"
+  },
+  {
+    "name": "TOFFEE Movies VIP",
+    "path": "/cdn/live/toffee_movie/playlist.m3u8",
+    "logo": "https://images.toffeelive.com/images/program/2708/logo/240x240/mobile_logo_724353001725875591.png"
+  },
+  {
+    "name": "EPL channel 1",
+    "path": "/live/match-1/index.m3u8",
+    "logo": "https://assets-prod.services.toffeelive.com/w_256,q_75,f_webp/JS1AqZgBNnOkwJLWlwg-/posters/08617b27-2af1-4035-bcc3-d054ce42ca4b.png"
+  },
+  {
+    "name": "IND vs SA",
+    "path": "/live/match-asiacup-2/master_1300.m3u8",
+    "logo": "https://assets-prod.services.toffeelive.com/w_640,q_75,f_webp/TSK2e5oBEef-9-uVH5vw/posters/5cc6444f-88c9-4a08-a934-39588cec6040.png"
+  },
+  {
+    "name": "CNN VIP",
+    "path": "/cdn/live/cnn/playlist.m3u8",
+    "logo": "https://images.toffeelive.com/images/program/333/logo/240x240/mobile_logo_146607001735536058.png"
+  }
+  // ... Add all other channels from your original file here, using only 'name', 'path', and 'logo'
+]
